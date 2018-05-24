@@ -43,7 +43,8 @@ class Index extends React.Component {
         mintingTime: coinData[i][0].toNumber(),
         generation: coinData[i][1].toNumber(),
         coinType: coinData[i][2].toNumber(),
-        genes: coinData[i][3].toNumber()
+        genes: coinData[i][3].toNumber(),
+        owner: coinData[i][4]
       };
     }
 
@@ -80,12 +81,17 @@ class Index extends React.Component {
 
     for (let i = 0; i < coinIndicies.length; i++) {
       let txResult = await coreInstance.getCoin(coinIndicies[i], { from: accounts[0] });
+      let ownerId = await coreInstance.ownerOf(coinIndicies[i], { from: accounts[0] });
+      
+      txResult.push(ownerId);
+      console.log("ownerId", ownerId);
+      console.log("txReslt", txResult);
       coinData.push(txResult);
     }
     coinData = this.formatCoinData(coinData);
 
     this.setState({ coinData });
-    console.log(coinData);
+    console.log("coinData", coinData);
   }
 
   handleItemClick = (e, { name }) => {
@@ -121,17 +127,17 @@ class Index extends React.Component {
     items = coinDataSlice.map(coin => {
 
       const src = coinTypeToImage(coin.coinType);
-      console.log(coin.coinType, "coinType");
+      //console.log(coin.coinType, "coinType");
       return {
-        header: coin.name,
-        description: coin.dna,
+        header: coin.coinType,
+        description: coin.owner,
         image: src,
         fluid: true
       };
     });
 
     return (
-      <Card.Group items={items} itemsPerRow={4}>
+      <Card.Group items={items} itemsPerRow={3}>
       </Card.Group>
     );
   }
@@ -182,11 +188,6 @@ class Index extends React.Component {
               />
             </Grid.Column>
           </Grid.Row>
-
-          <Grid.Row>
-            <Button onClick={this.createRandomPromoCoin}>Create Random Coin</Button>
-          </Grid.Row>
-
         </Grid>
         {/* <a href='https://www.freepik.com/free-vector/cartoon-eyes_761389.htm'>Designed by Freepik</a> */}
       </Layout>

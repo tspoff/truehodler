@@ -9,7 +9,9 @@ export default (props) => {
                 <a className="item">True Hodler</a>
             </Link>
             <Menu.Menu position="right">
-
+                <Link href='/admin'>
+                    <a className="item">Admin Panel</a>
+                </Link>
             </Menu.Menu>
         </Menu>
     );
