@@ -1,10 +1,14 @@
 import React from 'react';
 import Link from 'next/link';
 import { Grid, Menu, Form, Button, Message, Input, Pagination, Card } from 'semantic-ui-react';
-import Web3Container from '../lib/Web3Container';
 import coinTypeToImage from '../lib/mappings/coinTypeToImage';
 import coinGenesToEyes from '../lib/mappings/coinGenesToEyes';
 import Layout from '../components/Layout';
+
+import web3 from '../lib/web3';
+import getAccounts from '.././lib/getAccounts';
+import getContract from '.././lib/getContract';
+import contractDefinition from '../lib/contracts/CoinCore.json';
 
 const MARKET_TAB_STRING = 'For Sale';
 const MYCOINS_TAB_STRING = 'My Coins';
@@ -12,7 +16,8 @@ const MYCOINS_TAB_STRING = 'My Coins';
 class Index extends React.Component {
   state = {
     coins: [],
-
+    coreInstance: undefined,
+    accounts: undefined,
     activeItem: MYCOINS_TAB_STRING,
     itemResults: [],
     coinIndicies: null,
@@ -30,9 +35,19 @@ class Index extends React.Component {
 
   }
 
-  async componentDidMount() {
-    const { web3, accounts, coreInstance } = this.props;
+  async componentWillMount() {
+    const accounts = await web3.eth.getAccounts();
+    const coreInstance = await getContract(web3, contractDefinition);
+
+    this.setState({ accounts, coreInstance });
+    console.log("props", this.props);
+    console.log("state", this.state);
+
     this.getCoinListByPage();
+  }
+
+  async componentDidMount() {    
+    
   }
 
   formatCoinData(coinData) {
@@ -52,8 +67,7 @@ class Index extends React.Component {
   }
 
   async getCoinListByPage() {
-    const { accounts, coreInstance } = this.props;
-    const { activeItem } = this.state;
+    const { activeItem, accounts, coreInstance } = this.state;
 
     //Get list of coins to render, based on tab
     let coinIndicies = [];
@@ -195,11 +209,4 @@ class Index extends React.Component {
   }
 }
 
-export default () => (
-  <Web3Container
-    renderLoading={() => <div>Loading Dapp Page...</div>}
-    render={({ web3, accounts, coreInstance }) => (
-      <Index accounts={accounts} coreInstance={coreInstance} web3={web3} />
-    )}
-  />
-)
+export default Index;

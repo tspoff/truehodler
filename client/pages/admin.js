@@ -1,18 +1,28 @@
 import React from 'react';
 import Link from 'next/link';
 import { Form, Button, Message, Input } from 'semantic-ui-react';
-import Web3Container from '../lib/Web3Container';
 import Layout from '../components/Layout';
 
-class Index extends React.Component {
+import web3 from '../lib/web3';
+import getAccounts from '.././lib/getAccounts';
+import getContract from '.././lib/getContract';
+import contractDefinition from '../lib/contracts/CoinCore.json';
+import initContract from 'truffle-contract'
+
+class Admin extends React.Component {
     state = {
         coinType: '',
         errorMessage: '',
-        loading: false
+        loading: false,
+        accounts: undefined,
+        coreInstance: undefined,
     };
 
-    async componentDidMount() {
-        const { web3, accounts, coreInstance } = this.props;
+    async componentWillMount() {
+        const accounts = await web3.eth.getAccounts();
+        const coreInstance = await getContract(web3, contractDefinition);
+
+        this.setState({ accounts, coreInstance });
     }
 
     onSubmit = async (event) => {
@@ -21,8 +31,7 @@ class Index extends React.Component {
         this.setState({ loading: true, errorMessage: '' });
 
         try {
-            const { accounts, coreInstance } = this.props;
-            const { coinType } = this.state;
+            const { accounts, coreInstance, coinType } = this.state;
 
             const cooAddress = await coreInstance.getCOO.call({ from: accounts[0] });
             await coreInstance.createPromoCoin(0, coinType, cooAddress, { from: accounts[0] });
@@ -33,7 +42,6 @@ class Index extends React.Component {
 
         this.setState({ loading: false });
     };
-
 
     render() {
         return (
@@ -56,11 +64,4 @@ class Index extends React.Component {
 
 }
 
-export default () => (
-    <Web3Container
-        renderLoading={() => <div>Loading Dapp Page...</div>}
-        render={({ web3, accounts, coreInstance }) => (
-            <Index accounts={accounts} coreInstance={coreInstance} web3={web3} />
-        )}
-    />
-)
+export default Admin;
