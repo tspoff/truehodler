@@ -1,6 +1,6 @@
 import React from 'react';
-import Link from 'next/link';
-import { Grid, Menu, Form, Button, Message, Input, Pagination, Card } from 'semantic-ui-react';
+import { Link } from '../routes';
+import { Grid, Menu, Form, Button, Message, Input, Pagination, Card, Image } from 'semantic-ui-react';
 import coinTypeToImage from '../lib/mappings/coinTypeToImage';
 import coinGenesToEyes from '../lib/mappings/coinGenesToEyes';
 import Layout from '../components/Layout';
@@ -46,8 +46,8 @@ class Index extends React.Component {
     this.getCoinListByPage();
   }
 
-  async componentDidMount() {    
-    
+  async componentDidMount() {
+
   }
 
   formatCoinData(coinData) {
@@ -59,7 +59,8 @@ class Index extends React.Component {
         generation: coinData[i][1].toNumber(),
         coinType: coinData[i][2].toNumber(),
         genes: coinData[i][3].toNumber(),
-        owner: coinData[i][4]
+        owner: coinData[i][4],
+        coinId: coinData[i][5],
       };
     }
 
@@ -96,8 +97,9 @@ class Index extends React.Component {
     for (let i = 0; i < coinIndicies.length; i++) {
       let txResult = await coreInstance.getCoin(coinIndicies[i], { from: accounts[0] });
       let ownerId = await coreInstance.ownerOf(coinIndicies[i], { from: accounts[0] });
-      
+
       txResult.push(ownerId);
+      txResult.push(coinIndicies[i]);
       console.log("ownerId", ownerId);
       console.log("txReslt", txResult);
       coinData.push(txResult);
@@ -117,6 +119,7 @@ class Index extends React.Component {
     this.setState({ activePage })
     console.log(this.state.activePage);
   };
+
 
   renderItems() {
 
@@ -142,18 +145,26 @@ class Index extends React.Component {
 
       const src = coinTypeToImage(coin.coinType);
       //console.log(coin.coinType, "coinType");
-      return {
-        header: coin.coinType,
-        description: coin.owner,
-        image: src,
-        fluid: true
-      };
+      return (
+        <Card fluid>
+          <Image src={src} size='small' centered />
+
+          <Card.Content>
+            <Card.Header>
+              {coin.coinType}
+            </Card.Header>
+            <Card.Description>
+              {coin.owner}
+            </Card.Description>
+          </Card.Content>
+          <Card.Content extra>
+            <Link route={`/coin/${coin.coinId}`}>Coin Link</Link>
+          </Card.Content>
+        </Card>
+      );
     });
 
-    return (
-      <Card.Group items={items} itemsPerRow={3}>
-      </Card.Group>
-    );
+    return items;
   }
 
   render() {
@@ -180,7 +191,9 @@ class Index extends React.Component {
 
           <Grid.Row>
             <Grid.Column>
-              {this.renderItems()}
+              <Card.Group itemsPerRow={3}>
+                {this.renderItems()}
+              </Card.Group>
             </Grid.Column>
           </Grid.Row>
 

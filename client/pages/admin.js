@@ -1,5 +1,5 @@
 import React from 'react';
-import Link from 'next/link';
+import { Link } from '../routes';
 import { Form, Button, Message, Input } from 'semantic-ui-react';
 import Layout from '../components/Layout';
 
