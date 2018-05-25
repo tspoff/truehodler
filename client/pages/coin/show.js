@@ -1,14 +1,15 @@
 import React from 'react';
 import { Link } from '../../routes';
-import { Form, Button, Message, Input, Grid, Image } from 'semantic-ui-react';
+import { Form, Button, Message, Input, Grid, Image, Container } from 'semantic-ui-react';
 import Layout from '../../components/Layout';
 import coinTypeToImage from '../../lib/mappings/coinTypeToImage';
 
-import web3 from '../lib/web3';
-import getAccounts from '.././lib/getAccounts';
-import getContract from '.././lib/getContract';
-import contractDefinition from '../lib/contracts/CoinCore.json';
-import initContract from 'truffle-contract'
+import web3 from '../../lib/web3';
+import getAccounts from '../../lib/getAccounts';
+import getContract from '../../lib/getContract';
+import contractDefinition from '../../lib/contracts/CoinCore.json';
+
+import CoinHelper from '../../lib/CoinCoreInterface';
 
 class ShowCoin extends React.Component {
     state = {
@@ -19,6 +20,7 @@ class ShowCoin extends React.Component {
         coinId: undefined,
         accounts: undefined,
         coreInstance: undefined,
+        coinHelper: undefined,
     };
 
     static async getInitialProps(props) {
@@ -30,8 +32,9 @@ class ShowCoin extends React.Component {
     async componentWillMount() {
         const accounts = await web3.eth.getAccounts();
         const coreInstance = await getContract(web3, contractDefinition);
+        const coinHelper = new CoinHelper();
 
-        this.setState({ accounts, coreInstance });
+        this.setState({ accounts, coreInstance, coinHelper });
         this.getCoin();
     }
 
@@ -39,26 +42,18 @@ class ShowCoin extends React.Component {
 
     }
     async getCoin() {
-        const { accounts, coreInstance } = this.state;
-        
+        const { coinId } = this.props;
+        const { accounts, coreInstance, coinHelper } = this.state;
+
         let coinData = await coreInstance.getCoin(coinId, { from: accounts[0] });
         const coinOwner = await coreInstance.ownerOf(coinId, { from: accounts[0] });
-        console.log(coinData);
-        coinData = this.formatCoinData(coinData);
-        console.log(coinData);
-        this.setState({coinData});
-    }
 
-    formatCoinData(coinData) {
-            formattedData = {
-                mintingTime: coinData[i][0].toNumber(),
-                generation: coinData[i][1].toNumber(),
-                coinType: coinData[i][2].toNumber(),
-                genes: coinData[i][3].toNumber(),
-                owner: coinData[i][4]
-            };
-
-        return formattedData;
+        coinData.push(coinOwner);
+        coinData.push(coinId);
+        console.log(coinData);
+        coinData = coinHelper.formatCoinData(coinData);
+        console.log(coinData);
+        this.setState({ coinData });
     }
 
     renderCoinImage() {
@@ -66,22 +61,26 @@ class ShowCoin extends React.Component {
         const src = coinTypeToImage(coinData.coinType);
 
         return (
-            <Image src={src} size='large' centered />
+            <Container fluid>
+                <Image src={src} size='medium' centered />
+            </Container>
         )
     }
 
     renderCoinInfo() {
         const { coinData } = this.state;
 
-        <div>
+        return (
+        <Container>
             <h2>{coinData.mintingTime}</h2>
             <h4>Coin {coinData.coinId}</h4>
-            <Link route={`/profile/${coinData.owner}`}>Owner {coinData.owner}</Link>
-        </div>
+            <Link route={`/profile/${coinData.owner}`}>Owner</Link>
+        </Container>
+        )
     }
 
     render() {
-        const {coinData} = this.state;
+        const { coinData } = this.state;
         return (
             <Layout>
                 <Grid>
@@ -91,7 +90,7 @@ class ShowCoin extends React.Component {
                         ) : (
                                 "Waiting for coin"
                             )}
-                        
+
                     </Grid.Row>
                     <Grid.Row>
                         {coinData != undefined ? (

@@ -6,9 +6,11 @@ import coinGenesToEyes from '../lib/mappings/coinGenesToEyes';
 import Layout from '../components/Layout';
 
 import web3 from '../lib/web3';
-import getAccounts from '.././lib/getAccounts';
-import getContract from '.././lib/getContract';
+import getAccounts from '../lib/getAccounts';
+import getContract from '../lib/getContract';
 import contractDefinition from '../lib/contracts/CoinCore.json';
+
+import CoinHelper from '../lib/CoinCoreInterface';
 
 const MARKET_TAB_STRING = 'For Sale';
 const MYCOINS_TAB_STRING = 'My Coins';
@@ -21,7 +23,7 @@ class Index extends React.Component {
     activeItem: MYCOINS_TAB_STRING,
     itemResults: [],
     coinIndicies: null,
-    coinData: null,
+    coinList: null,
     loading: false,
     activePage: 1,
     totalPages: 1,
@@ -31,15 +33,17 @@ class Index extends React.Component {
     showEllipsis: true,
     showFirstAndLastNav: true,
     showPreviousAndNextNav: true,
-    saleAuctionAddress: undefined
+    saleAuctionAddress: undefined,
+    coinHelper: undefined,
 
   }
 
   async componentWillMount() {
     const accounts = await web3.eth.getAccounts();
     const coreInstance = await getContract(web3, contractDefinition);
+    const coinHelper = new CoinHelper();
 
-    this.setState({ accounts, coreInstance });
+    this.setState({ accounts, coreInstance, coinHelper });
     console.log("props", this.props);
     console.log("state", this.state);
 
@@ -50,25 +54,8 @@ class Index extends React.Component {
 
   }
 
-  formatCoinData(coinData) {
-    let formattedData = [];
-
-    for (let i in coinData) {
-      formattedData[i] = {
-        mintingTime: coinData[i][0].toNumber(),
-        generation: coinData[i][1].toNumber(),
-        coinType: coinData[i][2].toNumber(),
-        genes: coinData[i][3].toNumber(),
-        owner: coinData[i][4],
-        coinId: coinData[i][5],
-      };
-    }
-
-    return formattedData;
-  }
-
   async getCoinListByPage() {
-    const { activeItem, accounts, coreInstance } = this.state;
+    const { activeItem, accounts, coreInstance, coinHelper } = this.state;
 
     //Get list of coins to render, based on tab
     let coinIndicies = [];
@@ -84,7 +71,6 @@ class Index extends React.Component {
         break;
     }
 
-    console.log('coinIndicies', coinIndicies);
     this.setState({ coinIndicies, saleAuctionAddress });
     const totalPages = coinIndicies.length / this.state.itemsPerPage;
     this.setState({ totalPages })
@@ -92,7 +78,7 @@ class Index extends React.Component {
     /*  Get the data from each coin individually
         Solidity can't return arrays of structs, but we could return an array for each property, with the index corresponding to coin index */
 
-    let coinData = [];
+    let coinList = [];
 
     for (let i = 0; i < coinIndicies.length; i++) {
       let txResult = await coreInstance.getCoin(coinIndicies[i], { from: accounts[0] });
@@ -100,14 +86,10 @@ class Index extends React.Component {
 
       txResult.push(ownerId);
       txResult.push(coinIndicies[i]);
-      console.log("ownerId", ownerId);
-      console.log("txReslt", txResult);
-      coinData.push(txResult);
+      coinList.push(coinHelper.formatCoinData(txResult));
     }
-    coinData = this.formatCoinData(coinData);
 
-    this.setState({ coinData });
-    console.log("coinData", coinData);
+    this.setState({ coinList });
   }
 
   handleItemClick = (e, { name }) => {
@@ -127,9 +109,9 @@ class Index extends React.Component {
     //You could also return an array for each property dnaArray[1-3] nameArray[1-3], etc
 
     let items = {};
-    const { coinIndicies, coinData, itemsPerPage, activePage } = this.state;
+    const { coinIndicies, coinList, itemsPerPage, activePage } = this.state;
 
-    if (coinIndicies == null || coinData == null) {
+    if (coinIndicies == null || coinList == null) {
       return (
         <Card.Group items={items}></Card.Group>
       );
@@ -139,9 +121,9 @@ class Index extends React.Component {
     const endIndex = Math.min(coinIndicies.length, (itemsPerPage * activePage));
     const startIndex = (activePage - 1) * itemsPerPage;
 
-    const coinDataSlice = coinData.slice(startIndex, endIndex);
+    const coinListSlice = coinList.slice(startIndex, endIndex);
 
-    items = coinDataSlice.map(coin => {
+    items = coinListSlice.map(coin => {
 
       const src = coinTypeToImage(coin.coinType);
       //console.log(coin.coinType, "coinType");
