@@ -1,15 +1,15 @@
 import React, { Component } from 'react';
 import { Menu } from 'semantic-ui-react';
-import Link from 'next/link'
+import { Link } from '../routes';
 
 export default (props) => {
     return (
         <Menu style={{ marginTop: '10px' }}>
-            <Link href='/'>
+            <Link route={'/'}>
                 <a className="item">True Hodler</a>
             </Link>
             <Menu.Menu position="right">
-                <Link href='/admin'>
+                <Link route={'/admin'}>
                     <a className="item">Admin Panel</a>
                 </Link>
             </Menu.Menu>
