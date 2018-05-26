@@ -262,7 +262,7 @@ contract ClockAuction is Pausable, ClockAuctionBase {
     ///  the Nonfungible Interface.
     /// @param _cut - percent cut the owner takes on each auction, must be
     ///  between 0-10,000.
-    function ClockAuction(address _nftAddress, uint256 _cut) public {
+    constructor (address _nftAddress, uint256 _cut) public {
         require(_cut <= 10000);
         ownerCut = _cut;
 
@@ -385,6 +385,11 @@ contract ClockAuction is Pausable, ClockAuctionBase {
             auction.duration,
             auction.startedAt
         );
+    }
+
+    function isOnAuction(uint256 _tokenId) external view returns (bool) {
+        Auction storage auction = tokenIdToAuction[_tokenId];
+        return _isOnAuction(auction);
     }
 
     /// @dev Returns the current price of an auction.

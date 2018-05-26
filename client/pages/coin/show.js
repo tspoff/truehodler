@@ -7,7 +7,9 @@ import coinTypeToImage from '../../lib/mappings/coinTypeToImage';
 import web3 from '../../lib/web3';
 import getAccounts from '../../lib/getAccounts';
 import getContract from '../../lib/getContract';
-import contractDefinition from '../../lib/contracts/CoinCore.json';
+import coinCoreDefinition from '../../lib/contracts/CoinCore.json';
+import geneScienceDefinition from '../../lib/contracts/GeneScienceTest.json';
+import saleAuctionDefinition from '../../lib/contracts/SaleClockAuction.json';
 
 import CoinHelper from '../../lib/CoinCoreInterface';
 
@@ -20,6 +22,8 @@ class ShowCoin extends React.Component {
         coinId: undefined,
         accounts: undefined,
         coreInstance: undefined,
+        saleAuctionInstance: undefined,
+        geneScienceInstance: undefined,
         coinHelper: undefined,
     };
 
@@ -31,10 +35,12 @@ class ShowCoin extends React.Component {
 
     async componentWillMount() {
         const accounts = await web3.eth.getAccounts();
-        const coreInstance = await getContract(web3, contractDefinition);
+        const coreInstance = await getContract(web3, coinCoreDefinition);
+        // const geneScienceInstance = await getContract(web3, geneScienceDefinition);
+        const saleAuctionInstance = await getContract(web3, saleAuctionDefinition);
         const coinHelper = new CoinHelper();
 
-        this.setState({ accounts, coreInstance, coinHelper });
+        this.setState({ accounts, coreInstance, saleAuctionInstance, coinHelper });
         this.getCoin();
     }
 
@@ -43,13 +49,20 @@ class ShowCoin extends React.Component {
     }
     async getCoin() {
         const { coinId } = this.props;
-        const { accounts, coreInstance, coinHelper } = this.state;
+        const { accounts, coreInstance, saleAuctionInstance, coinHelper } = this.state;
 
         let coinData = await coreInstance.getCoin(coinId, { from: accounts[0] });
         const coinOwner = await coreInstance.ownerOf(coinId, { from: accounts[0] });
+        const isOnAuction = await saleAuctionInstance.isOnAuction(coinId, { from: accounts[0] });
 
         coinData.push(coinOwner);
         coinData.push(coinId);
+
+        if (isOnAuction) {
+            const auction = await saleAuctionInstance.getAuction(coinId, { from: accounts[0] });
+            coinData.push(auction);
+        }
+
         console.log(coinData);
         coinData = coinHelper.formatCoinData(coinData);
         console.log(coinData);
@@ -58,6 +71,12 @@ class ShowCoin extends React.Component {
 
     renderCoinImage() {
         const { coinData } = this.state;
+
+        //TODO: Loading spanner
+        if (coinData == undefined) {
+            return (<div>Waiting for coins</div>);
+        }
+
         const src = coinTypeToImage(coinData.coinType);
 
         return (
@@ -70,34 +89,37 @@ class ShowCoin extends React.Component {
     renderCoinInfo() {
         const { coinData } = this.state;
 
+        //TODO: Loading spanner
+        if (coinData == undefined) {
+            return (<div>Waiting for coins</div>);
+        }
+
         return (
-        <Container>
-            <h2>{coinData.mintingTime}</h2>
-            <h4>Coin {coinData.coinId}</h4>
-            <Link route={`/profile/${coinData.owner}`}>Owner</Link>
-        </Container>
+            <Container>
+                <h2>{coinData.mintingTime}</h2>
+                <h4>Coin {coinData.coinId}</h4>
+                <Link route={`/profile/${coinData.owner}`}>Owner</Link>
+                {coinData ? null : (
+                    <Button color="green" onClick={this.onBuy}>Buy Now</Button>
+                )}
+            </Container>
         )
     }
 
+    onBuy = async () => {
+        const { accounts, coreInstance } = this.props;
+
+    };
+
     render() {
-        const { coinData } = this.state;
         return (
             <Layout>
                 <Grid>
                     <Grid.Row>
-                        {coinData != undefined ? (
-                            this.renderCoinImage()
-                        ) : (
-                                "Waiting for coin"
-                            )}
-
+                        { this.renderCoinImage() }
                     </Grid.Row>
                     <Grid.Row>
-                        {coinData != undefined ? (
-                            this.renderCoinInfo()
-                        ) : (
-                                "Waiting for coin"
-                            )}
+                        { this.renderCoinInfo() }
                     </Grid.Row>
                 </Grid>
             </Layout>

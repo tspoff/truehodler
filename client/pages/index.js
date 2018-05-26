@@ -1,14 +1,14 @@
 import React from 'react';
 import { Link } from '../routes';
 import { Grid, Menu, Form, Button, Message, Input, Pagination, Card, Image } from 'semantic-ui-react';
-import coinTypeToImage from '../lib/mappings/coinTypeToImage';
-import coinGenesToEyes from '../lib/mappings/coinGenesToEyes';
 import Layout from '../components/Layout';
+import CoinList from '../components/CoinList';
 
 import web3 from '../lib/web3';
 import getAccounts from '../lib/getAccounts';
 import getContract from '../lib/getContract';
 import contractDefinition from '../lib/contracts/CoinCore.json';
+import saleAuctionDefinition from '../lib/contracts/SaleClockAuction.json';
 
 import CoinHelper from '../lib/CoinCoreInterface';
 
@@ -42,6 +42,8 @@ class Index extends React.Component {
     const accounts = await web3.eth.getAccounts();
     const coreInstance = await getContract(web3, contractDefinition);
     const coinHelper = new CoinHelper();
+
+    const saleAuctionInstance = await getContract(web3, saleAuctionDefinition);
 
     this.setState({ accounts, coreInstance, coinHelper });
     console.log("props", this.props);
@@ -102,53 +104,6 @@ class Index extends React.Component {
     console.log(this.state.activePage);
   };
 
-
-  renderItems() {
-
-    //Next: loop through and parse the getCoin results, remix shows how its returned.
-    //You could also return an array for each property dnaArray[1-3] nameArray[1-3], etc
-
-    let items = {};
-    const { coinIndicies, coinList, itemsPerPage, activePage } = this.state;
-
-    if (coinIndicies == null || coinList == null) {
-      return (
-        <Card.Group items={items}></Card.Group>
-      );
-    }
-
-    //Slice is inclusive of start, exclusive of end
-    const endIndex = Math.min(coinIndicies.length, (itemsPerPage * activePage));
-    const startIndex = (activePage - 1) * itemsPerPage;
-
-    const coinListSlice = coinList.slice(startIndex, endIndex);
-
-    items = coinListSlice.map(coin => {
-
-      const src = coinTypeToImage(coin.coinType);
-      //console.log(coin.coinType, "coinType");
-      return (
-        <Card fluid>
-          <Image src={src} size='small' centered />
-
-          <Card.Content>
-            <Card.Header>
-              {coin.coinType}
-            </Card.Header>
-            <Card.Description>
-              {coin.owner}
-            </Card.Description>
-          </Card.Content>
-          <Card.Content extra>
-            <Link route={`/coin/${coin.coinId}`}>Coin Link</Link>
-          </Card.Content>
-        </Card>
-      );
-    });
-
-    return items;
-  }
-
   render() {
     const {
       activeItem,
@@ -158,7 +113,9 @@ class Index extends React.Component {
       showEllipsis,
       showFirstAndLastNav,
       showPreviousAndNextNav,
-      totalPages } = this.state
+      totalPages,
+      coinList,
+      } = this.state
 
     return (
       <Layout>
@@ -173,9 +130,7 @@ class Index extends React.Component {
 
           <Grid.Row>
             <Grid.Column>
-              <Card.Group itemsPerRow={3}>
-                {this.renderItems()}
-              </Card.Group>
+                <CoinList coinList={coinList}></CoinList>
             </Grid.Column>
           </Grid.Row>
 
