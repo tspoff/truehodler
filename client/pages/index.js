@@ -9,6 +9,7 @@ import getAccounts from '../lib/getAccounts';
 import getContract from '../lib/getContract';
 import contractDefinition from '../lib/contracts/CoinCore.json';
 import saleAuctionDefinition from '../lib/contracts/SaleClockAuction.json';
+import geneScienceDefinition from '../lib/contracts/GeneScienceTest.json';
 
 import CoinHelper from '../lib/CoinCoreInterface';
 
@@ -34,18 +35,21 @@ class Index extends React.Component {
     showFirstAndLastNav: true,
     showPreviousAndNextNav: true,
     saleAuctionAddress: undefined,
+    geneScienceInstance: undefined,
     coinHelper: undefined,
 
   }
 
   async componentWillMount() {
     const accounts = await web3.eth.getAccounts();
+
     const coreInstance = await getContract(web3, contractDefinition);
+    const saleAuctionInstance = await getContract(web3, saleAuctionDefinition);
+    const geneScienceInstance = await getContract(web3, geneScienceDefinition);
+
     const coinHelper = new CoinHelper();
 
-    const saleAuctionInstance = await getContract(web3, saleAuctionDefinition);
-
-    this.setState({ accounts, coreInstance, coinHelper });
+    this.setState({ accounts, coreInstance, saleAuctionInstance, geneScienceInstance, coinHelper });
     console.log("props", this.props);
     console.log("state", this.state);
 
@@ -104,6 +108,24 @@ class Index extends React.Component {
     console.log(this.state.activePage);
   };
 
+  //TODO: very temporary way to do this. can we do this on deploy?
+  setInitialContractParams = async () => {
+    const { accounts, coreInstance, saleAuctionInstance, geneScienceInstance, coinHelper } = this.state;
+    
+    console.log("saleAuctionInstance", saleAuctionInstance);
+    //TODO: very temporary hack to set this address. can we do this on deploy?
+    await coreInstance.setSaleAuctionAddress(saleAuctionInstance.address, { from: accounts[0] });
+
+    await coreInstance.setCEO(accounts[0], { from: accounts[0] });
+    await coreInstance.setCFO(accounts[0], { from: accounts[0] });
+    await coreInstance.setCOO(accounts[0], { from: accounts[0] });
+
+    await coreInstance.setGeneScienceAddress(geneScienceInstance.address, { from: accounts[0] });
+    await coreInstance.setSaleAuctionAddress(saleAuctionInstance.address, { from: accounts[0] });
+
+    await coreInstance.unpause({ from: accounts[0] });
+  }
+
   render() {
     const {
       activeItem,
@@ -151,6 +173,10 @@ class Index extends React.Component {
                 nextItem={showPreviousAndNextNav ? undefined : null}
               />
             </Grid.Column>
+          </Grid.Row>
+
+          <Grid.Row>
+            <Button color="green" onClick={this.setInitialContractParams}>Temp: Set Contract Params</Button>
           </Grid.Row>
         </Grid>
         {/* <a href='https://www.freepik.com/free-vector/cartoon-eyes_761389.htm'>Designed by Freepik</a> */}
