@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from '../routes';
-import { Form, Button, Message, Input } from 'semantic-ui-react';
+import { Form, Button, Message, Input, Container } from 'semantic-ui-react';
 import Layout from '../components/Layout';
 
 import web3 from '../lib/web3';
@@ -23,6 +23,24 @@ class Admin extends React.Component {
         const coreInstance = await getContract(web3, contractDefinition);
 
         this.setState({ accounts, coreInstance });
+    }
+
+    //TODO: very temporary way to do this. can we do this on deploy?
+    setInitialContractParams = async () => {
+        const { accounts, coreInstance, saleAuctionInstance, geneScienceInstance, coinHelper } = this.state;
+
+        console.log("saleAuctionInstance", saleAuctionInstance);
+        //TODO: very temporary hack to set this address. can we do this on deploy?
+        await coreInstance.setSaleAuctionAddress(saleAuctionInstance.address, { from: accounts[0] });
+
+        await coreInstance.setCEO(accounts[0], { from: accounts[0] });
+        await coreInstance.setCFO(accounts[0], { from: accounts[0] });
+        await coreInstance.setCOO(accounts[0], { from: accounts[0] });
+
+        await coreInstance.setGeneScienceAddress(geneScienceInstance.address, { from: accounts[0] });
+        await coreInstance.setSaleAuctionAddress(saleAuctionInstance.address, { from: accounts[0] });
+
+        await coreInstance.unpause({ from: accounts[0] });
     }
 
     onSubmit = async (event) => {
@@ -58,6 +76,9 @@ class Admin extends React.Component {
                     <Message error header="Error" content={this.state.errorMessage}></Message>
                     <Button primary loading={this.state.loading}>Create!</Button>
                 </Form>
+                <Container>
+                    <Button color="blue" onClick={this.setInitialContractParams}>Temp: Set Contract Params</Button>
+                </Container>
             </Layout>
         );
     }

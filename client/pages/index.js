@@ -61,7 +61,7 @@ class Index extends React.Component {
   }
 
   async getCoinListByPage() {
-    const { activeItem, accounts, coreInstance, coinHelper } = this.state;
+    const { activeItem, accounts, coreInstance, coinHelper, saleAuctionInstance } = this.state;
 
     //Get list of coins to render, based on tab
     let coinIndicies = [];
@@ -89,10 +89,18 @@ class Index extends React.Component {
     for (let i = 0; i < coinIndicies.length; i++) {
       let txResult = await coreInstance.getCoin(coinIndicies[i], { from: accounts[0] });
       let ownerId = await coreInstance.ownerOf(coinIndicies[i], { from: accounts[0] });
+      const isOnAuction = await saleAuctionInstance.isOnAuction(coinIndicies[i], { from: accounts[0] });
 
       txResult.push(ownerId);
       txResult.push(coinIndicies[i]);
-      coinList.push(coinHelper.formatCoinData(txResult));
+
+      if (isOnAuction) {
+        const auction = await saleAuctionInstance.getAuction(coinId, { from: accounts[0] });
+        console.log("auction", auction);
+        coinList.push(coinHelper.formatCoinDataWithAuction(txResult, auction));
+      } else {
+        coinList.push(coinHelper.formatCoinData(txResult));
+      }
     }
 
     this.setState({ coinList });
@@ -107,24 +115,6 @@ class Index extends React.Component {
     this.setState({ activePage })
     console.log(this.state.activePage);
   };
-
-  //TODO: very temporary way to do this. can we do this on deploy?
-  setInitialContractParams = async () => {
-    const { accounts, coreInstance, saleAuctionInstance, geneScienceInstance, coinHelper } = this.state;
-    
-    console.log("saleAuctionInstance", saleAuctionInstance);
-    //TODO: very temporary hack to set this address. can we do this on deploy?
-    await coreInstance.setSaleAuctionAddress(saleAuctionInstance.address, { from: accounts[0] });
-
-    await coreInstance.setCEO(accounts[0], { from: accounts[0] });
-    await coreInstance.setCFO(accounts[0], { from: accounts[0] });
-    await coreInstance.setCOO(accounts[0], { from: accounts[0] });
-
-    await coreInstance.setGeneScienceAddress(geneScienceInstance.address, { from: accounts[0] });
-    await coreInstance.setSaleAuctionAddress(saleAuctionInstance.address, { from: accounts[0] });
-
-    await coreInstance.unpause({ from: accounts[0] });
-  }
 
   render() {
     const {
@@ -173,10 +163,6 @@ class Index extends React.Component {
                 nextItem={showPreviousAndNextNav ? undefined : null}
               />
             </Grid.Column>
-          </Grid.Row>
-
-          <Grid.Row>
-            <Button color="green" onClick={this.setInitialContractParams}>Temp: Set Contract Params</Button>
           </Grid.Row>
         </Grid>
         {/* <a href='https://www.freepik.com/free-vector/cartoon-eyes_761389.htm'>Designed by Freepik</a> */}
