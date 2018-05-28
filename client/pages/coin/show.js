@@ -1,6 +1,6 @@
 import React from 'react';
-import { Link } from '../../routes';
-import { Form, Button, Message, Input, Grid, Image, Container } from 'semantic-ui-react';
+import Link from 'next/link';
+import { Form, Button, Message, Input, Grid, Image, Container, Modal, Header } from 'semantic-ui-react';
 import Layout from '../../components/Layout';
 import coinTypeToImage from '../../lib/mappings/coinTypeToImage';
 
@@ -25,6 +25,18 @@ class ShowCoin extends React.Component {
         saleAuctionInstance: undefined,
         geneScienceInstance: undefined,
         coinHelper: undefined,
+        saleForm: {
+            startPrice: '0.01',
+            endPrice: '0.005',
+            duration: '2',
+            loading: false,
+            errorMessage: ''
+        },
+        transferForm: {
+            toAddress: '',
+            loading: false,
+            errorMessage: ''
+        },
     };
 
     static async getInitialProps(props) {
@@ -36,12 +48,12 @@ class ShowCoin extends React.Component {
     async componentWillMount() {
         const accounts = await web3.eth.getAccounts();
         const coreInstance = await getContract(web3, coinCoreDefinition);
-        // const geneScienceInstance = await getContract(web3, geneScienceDefinition);
         const saleAuctionInstance = await getContract(web3, saleAuctionDefinition);
         const coinHelper = new CoinHelper();
 
         this.setState({ accounts, coreInstance, saleAuctionInstance, coinHelper });
-        this.getCoin();
+        
+        await this.getCoin();
     }
 
     async componentDidMount() {
@@ -60,14 +72,86 @@ class ShowCoin extends React.Component {
 
         if (isOnAuction) {
             const auction = await saleAuctionInstance.getAuction(coinId, { from: accounts[0] });
-            coinData.push(auction);
+            console.log("auction", auction);
+            coinData = coinHelper.formatCoinDataWithAuction(coinData, auction);
+        } else {
+            coinData = coinHelper.formatCoinData(coinData);
         }
 
         console.log(coinData);
-        coinData = coinHelper.formatCoinData(coinData);
-        console.log(coinData);
         this.setState({ coinData });
     }
+
+    saleFormSubmit = async (event) => {
+        event.preventDefault();
+        console.log("sale form");
+        const { coinId } = this.props;
+        const { accounts, coreInstance, saleAuctionInstance } = this.state;
+        const { startPrice, endPrice, duration } = this.state.saleForm;
+
+        let saleForm = { ...this.state.saleForm };
+        saleForm.loading = true;
+        saleForm.errorMessage = '';
+        this.setState({ saleForm });
+
+        try {
+             await coreInstance.createSaleAuction(coinId, startPrice, endPrice, duration, { from: accounts[0] });
+            console.log("auction created");
+        } catch (err) {
+            saleForm = { ...this.state.saleForm };
+            saleForm.errorMessage = '';
+            this.setState({ saleForm });
+        }
+
+        saleForm = { ...this.state.saleForm };
+        saleForm.loading = false;
+        this.setState({ saleForm });
+    };
+
+    transferFormSubmit = async (event) => {
+        event.preventDefault();
+        console.log("transfer form");
+        const { coinId } = this.props;
+        const { accounts, coreInstance, saleAuctionInstance } = this.state;
+        const { toAddress } = this.state.transferForm;
+
+        let transferForm = { ...this.state.transferForm };
+        transferForm.loading = true;
+        transferForm.errorMessage = '';
+        this.setState({ transferForm });
+
+        try {
+             await coreInstance.transfer(toAddress, coinId, { from: accounts[0] });
+            console.log("transfer");
+        } catch (err) {
+            transferForm = { ...this.state.transferForm };
+            transferForm.errorMessage = '';
+            this.setState({ transferForm });
+        }
+
+        transferForm = { ...this.state.transferForm };
+        transferForm.loading = false;
+        this.setState({ transferForm });
+    };
+
+    close = () => this.setState({ open: false });
+
+    onBuy = async () => {
+        const { accounts, coreInstance, saleAuctionInstance } = this.state;
+    };
+
+    onBreed = async () => {
+        const { accounts, coreInstance, saleAuctionInstance } = this.state;
+    };
+
+    onSell = async () => {
+        const { accounts, coreInstance, saleAuctionInstance } = this.state;
+
+    };
+
+    onGift = async () => {
+        const { accounts, coreInstance, saleAuctionInstance } = this.state;
+    };
 
     renderCoinImage() {
         const { coinData } = this.state;
@@ -87,7 +171,9 @@ class ShowCoin extends React.Component {
     }
 
     renderCoinInfo() {
-        const { coinData } = this.state;
+        const { coinData, accounts } = this.state;
+
+        // const src = coinTypeToImage(coinData.coinType);
 
         //TODO: Loading spanner
         if (coinData == undefined) {
@@ -98,28 +184,103 @@ class ShowCoin extends React.Component {
             <Container>
                 <h2>{coinData.mintingTime}</h2>
                 <h4>Coin {coinData.coinId}</h4>
-                <Link route={`/profile/${coinData.owner}`}>Owner</Link>
-                {coinData ? null : (
-                    <Button color="green" onClick={this.onBuy}>Buy Now</Button>
+               <Link href={`/profile?address=${coinData.owner}`} as={`/profile/${coinData.owner}`} prefetch>{coinData.owner}</Link>
+                {coinData.auction ? null : (
+                    <Container>
+                        <Button color="green" onClick={this.onBuy}>Buy Now</Button>
+                    </Container>
+                )}
+                {coinData.owner === accounts[0] ? null : (
+                    <Container>
+                        <Button onClick={this.onBreed}>Breed</Button>
+                        <Button onClick={this.onGift}>Gift</Button>
+                    </Container>
                 )}
             </Container>
         )
     }
 
-    onBuy = async () => {
-        const { accounts, coreInstance } = this.props;
+    renderSaleForm() {
+        return (
+            <Form onSubmit={this.saleFormSubmit} error={!!this.state.saleForm.errorMessage}>
+                <Form.Field>
+                    <label>Start Price</label>
+                    <Input
+                        label="eth"
+                        labelPosition="right"
+                        value={this.state.saleForm.startPrice}
+                        onChange={event => {
+                            let saleForm = { ...this.state.saleForm }
+                            saleForm.startPrice = event.target.value;
+                            this.setState({ saleForm }) 
+                    }}/>
+                </Form.Field>
 
-    };
+                <Form.Field>
+                    <label>End Price</label>
+                    <Input
+                        label="eth"
+                        labelPosition="right" 
+                        value={this.state.saleForm.endPrice}
+                        onChange={event => {
+                            let saleForm = { ...this.state.saleForm }
+                            saleForm.endPrice = event.target.value;
+                            this.setState({ saleForm })
+                        }} />
+                </Form.Field>
+
+                <Form.Field>
+                    <label>Duration</label>
+                    <Input
+                        label="days"
+                        labelPosition="right"
+                        value={this.state.saleForm.duration}
+                        onChange={event => {
+                            let saleForm = { ...this.state.saleForm }
+                            saleForm.duration = event.target.value;
+                            this.setState({ saleForm })
+                        }} />
+                </Form.Field>
+                <Message error header="Error" content={this.state.saleForm.errorMessage}></Message>
+                <Button primary loading={this.state.saleForm.loading}>Create</Button>
+            </Form>
+        )
+    }
+
+    renderTransferForm() {
+        return (
+            <Form onSubmit={this.transferFormSubmit} error={!!this.state.transferForm.errorMessage}>
+                <Form.Field>
+                    <label>Address</label>
+                    <Input
+                        value={this.state.transferForm.toAddress}
+                        onChange={event => {
+                            let transferForm = { ...this.state.transferForm }
+                            transferForm.toAddress = event.target.value;
+                            this.setState({ transferForm }) 
+                    }}/>
+                </Form.Field>
+                <Message error header="Error" content={this.state.transferForm.errorMessage}></Message>
+                <Button primary loading={this.state.transferForm.loading}>Create</Button>
+            </Form>
+        )
+    }
 
     render() {
         return (
             <Layout>
                 <Grid>
                     <Grid.Row>
-                        { this.renderCoinImage() }
+                        {this.renderCoinImage()}
                     </Grid.Row>
                     <Grid.Row>
-                        { this.renderCoinInfo() }
+                        {this.renderCoinInfo()}
+                    </Grid.Row>
+                    <Grid.Row>
+                        {this.renderSaleForm()}
+                    </Grid.Row>
+                    <Grid.Row>
+                        {this.renderTransferForm()}
                     </Grid.Row>
                 </Grid>
             </Layout>

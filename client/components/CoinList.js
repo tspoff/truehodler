@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import { Menu, Card, Image } from 'semantic-ui-react';
-import { Link } from '../routes';
+import Link from 'next/link';
 
 import coinTypeToImage from '../lib/mappings/coinTypeToImage';
 import coinGenesToEyes from '../lib/mappings/coinGenesToEyes';
@@ -39,7 +39,7 @@ class CoinList extends React.Component {
         const { coinList } = this.props;
         const { itemsPerPage, activePage } = this.state;
 
-        if (coinList == null) {
+        if (coinList == undefined) {
             return (
                 <Card.Group items={items}></Card.Group>
             );
@@ -56,19 +56,19 @@ class CoinList extends React.Component {
             const src = coinTypeToImage(coin.coinType);
             //console.log(coin.coinType, "coinType");
             return (
-                <Card fluid>
-                    <Image src={src} size='small' centered />
+                <Card>
+                    <Image src={src} size='medium' centered />
 
                     <Card.Content>
                         <Card.Header>
                             {coin.coinType}
                         </Card.Header>
                         <Card.Description>
-                            {coin.owner}
+                            <Link href={`/profile?address=${coin.owner}`} as={`/profile/${coin.owner}`} prefetch><a>{coin.owner}</a></Link>
                         </Card.Description>
                     </Card.Content>
                     <Card.Content extra>
-                        <Link route={`/coin/${coin.coinId}`}>Coin Link</Link>
+                        <Link href={`/coin?coinId=${coin.coinId}`} as={`/coin/${coin.coinId}`} prefetch><a>Coin Link</a></Link>
                     </Card.Content>
                 </Card>
             );
@@ -79,7 +79,7 @@ class CoinList extends React.Component {
 
     render() {
         return (
-            <Card.Group itemsPerRow={3}>
+            <Card.Group>
                 {this.renderItems()}
             </Card.Group>
         )

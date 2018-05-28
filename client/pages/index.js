@@ -1,5 +1,4 @@
 import React from 'react';
-import { Link } from '../routes';
 import { Grid, Menu, Form, Button, Message, Input, Pagination, Card, Image } from 'semantic-ui-react';
 import Layout from '../components/Layout';
 import CoinList from '../components/CoinList';
@@ -141,9 +140,7 @@ class Index extends React.Component {
           </Grid.Row>
 
           <Grid.Row>
-            <Grid.Column>
                 <CoinList coinList={coinList}></CoinList>
-            </Grid.Column>
           </Grid.Row>
 
           <Grid.Row>
