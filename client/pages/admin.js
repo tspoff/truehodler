@@ -7,6 +7,8 @@ import web3 from '../lib/web3';
 import getAccounts from '.././lib/getAccounts';
 import getContract from '.././lib/getContract';
 import contractDefinition from '../lib/contracts/CoinCore.json';
+import saleAuctionDefinition from '../lib/contracts/SaleClockAuction.json';
+import geneScienceDefinition from '../lib/contracts/GeneScienceTest.json';
 import initContract from 'truffle-contract'
 
 class Admin extends React.Component {
@@ -21,8 +23,10 @@ class Admin extends React.Component {
     async componentWillMount() {
         const accounts = await web3.eth.getAccounts();
         const coreInstance = await getContract(web3, contractDefinition);
+        const saleAuctionInstance = await getContract(web3, saleAuctionDefinition);
+        const geneScienceInstance = await getContract(web3, geneScienceDefinition);
 
-        this.setState({ accounts, coreInstance });
+        this.setState({ accounts, coreInstance, saleAuctionInstance, geneScienceInstance });
     }
 
     //TODO: very temporary way to do this. can we do this on deploy?
@@ -31,8 +35,6 @@ class Admin extends React.Component {
 
         console.log("saleAuctionInstance", saleAuctionInstance);
         //TODO: very temporary hack to set this address. can we do this on deploy?
-        await coreInstance.setSaleAuctionAddress(saleAuctionInstance.address, { from: accounts[0] });
-
         await coreInstance.setCEO(accounts[0], { from: accounts[0] });
         await coreInstance.setCFO(accounts[0], { from: accounts[0] });
         await coreInstance.setCOO(accounts[0], { from: accounts[0] });
@@ -41,6 +43,10 @@ class Admin extends React.Component {
         await coreInstance.setSaleAuctionAddress(saleAuctionInstance.address, { from: accounts[0] });
 
         await coreInstance.unpause({ from: accounts[0] });
+
+        const cooAddress = await coreInstance.getCOO.call({ from: accounts[0] });
+        await coreInstance.createPromoCoin(0, 9, cooAddress, { from: accounts[0] });
+        await coreInstance.createPromoCoin(0, 23, cooAddress, { from: accounts[0] });
     }
 
     onSubmit = async (event) => {

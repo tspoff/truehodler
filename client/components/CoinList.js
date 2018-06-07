@@ -25,7 +25,6 @@ class CoinList extends React.Component {
         showPreviousAndNextNav: true,
         saleAuctionAddress: undefined,
         coinHelper: undefined,
-
     }
 
     renderItems() {
@@ -34,7 +33,7 @@ class CoinList extends React.Component {
         //You could also return an array for each property dnaArray[1-3] nameArray[1-3], etc
 
         let items = {};
-        console.log(this.props);
+        console.log(this.props, "CoinList props");
 
         const { coinList } = this.props;
         const { itemsPerPage, activePage } = this.state;

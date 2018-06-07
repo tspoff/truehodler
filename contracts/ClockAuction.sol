@@ -73,7 +73,7 @@ contract ClockAuctionBase {
     function _addAuction(uint256 _tokenId, Auction _auction) internal {
         // Require that all auctions have a duration of
         // at least one minute. (Keeps our math from getting hairy!)
-        require(_auction.duration >= 1 minutes);
+        require(_auction.duration >= 1 minutes, "Auction duration is less than minimum required time");
 
         tokenIdToAuction[_tokenId] = _auction;
 

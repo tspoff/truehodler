@@ -1,4 +1,5 @@
 import React from 'react';
+import axios from 'axios';
 import { Grid, Menu, Form, Button, Message, Input, Pagination, Card, Image } from 'semantic-ui-react';
 import Layout from '../components/Layout';
 import CoinList from '../components/CoinList';
@@ -17,13 +18,8 @@ const MYCOINS_TAB_STRING = 'My Coins';
 
 class Index extends React.Component {
   state = {
-    coins: [],
-    coreInstance: undefined,
-    accounts: undefined,
     activeItem: MYCOINS_TAB_STRING,
-    itemResults: [],
-    coinIndicies: null,
-    coinList: null,
+    coinList: [],
     loading: false,
     activePage: 1,
     totalPages: 1,
@@ -33,79 +29,66 @@ class Index extends React.Component {
     showEllipsis: true,
     showFirstAndLastNav: true,
     showPreviousAndNextNav: true,
-    saleAuctionAddress: undefined,
-    geneScienceInstance: undefined,
-    coinHelper: undefined,
+  }
 
+  static async getInitialProps() {
+    console.log(web3);
+    const accounts = await web3.eth.getAccounts();
+    let response = await axios(`http://localhost:3000/api/profile/${accounts[0]}/coins`);
+    const coinList = response.data;
+    
+    //TODO: these need to be confirmed locally, or gotten locally entirely - probably the latter.
+    response = await axios(`http://localhost:3000/api/contractaddresses`);
+    const contractAddresses = response.data;
+
+    console.log(coinList);
+
+    return {
+      accounts,
+      coinList,
+      contractAddresses,
+    };
   }
 
   async componentWillMount() {
-    const accounts = await web3.eth.getAccounts();
-
-    const coreInstance = await getContract(web3, contractDefinition);
-    const saleAuctionInstance = await getContract(web3, saleAuctionDefinition);
-    const geneScienceInstance = await getContract(web3, geneScienceDefinition);
-
-    const coinHelper = new CoinHelper();
-
-    this.setState({ accounts, coreInstance, saleAuctionInstance, geneScienceInstance, coinHelper });
-    console.log("props", this.props);
-    console.log("state", this.state);
-
-    this.getCoinListByPage();
+    console.log("componentWillMount");  
   }
 
   async componentDidMount() {
-
+    console.log("componentDidMount");
+    
   }
 
   async getCoinListByPage() {
-    const { activeItem, accounts, coreInstance, coinHelper, saleAuctionInstance } = this.state;
+    const { activeItem } = this.state;
+    const { accounts, contractAddresses } = this.props;
+
+    console.log(this.props, "props");
 
     //Get list of coins to render, based on tab
-    let coinIndicies = [];
-    let saleAuctionAddress;
+    let coinList = [];
+    let response;
 
     switch (activeItem) {
       case MARKET_TAB_STRING:
-        saleAuctionAddress = await coreInstance.getSaleAuctionAddress.call({ from: accounts[0] });
-        coinIndicies = await coreInstance.getCoinsByOwner(saleAuctionAddress, { from: accounts[0] });
+        console.log(contractAddresses.saleAuctionAddress, "saleAuctionAddress");
+        response = await axios(`http://localhost:3000/api/profile/${contractAddresses.saleAuctionAddress}/coins`);
+        coinList = response.data;
         break;
+
       case MYCOINS_TAB_STRING:
-        coinIndicies = await coreInstance.getCoinsByOwner(accounts[0], { from: accounts[0] });
+        response = await axios(`http://localhost:3000/api/profile/${accounts[0]}/coins`);
+        coinList = response.data;
         break;
     }
 
-    this.setState({ coinIndicies, saleAuctionAddress });
-    const totalPages = coinIndicies.length / this.state.itemsPerPage;
+    console.log(coinList, "coinList on data");
+    const totalPages = coinList.length / this.state.itemsPerPage;
     this.setState({ totalPages })
-
-    /*  Get the data from each coin individually
-        Solidity can't return arrays of structs, but we could return an array for each property, with the index corresponding to coin index */
-
-    let coinList = [];
-
-    for (let i = 0; i < coinIndicies.length; i++) {
-      let txResult = await coreInstance.getCoin(coinIndicies[i], { from: accounts[0] });
-      let ownerId = await coreInstance.ownerOf(coinIndicies[i], { from: accounts[0] });
-      const isOnAuction = await saleAuctionInstance.isOnAuction(coinIndicies[i], { from: accounts[0] });
-
-      txResult.push(ownerId);
-      txResult.push(coinIndicies[i]);
-
-      if (isOnAuction) {
-        const auction = await saleAuctionInstance.getAuction(coinId, { from: accounts[0] });
-        console.log("auction", auction);
-        coinList.push(coinHelper.formatCoinDataWithAuction(txResult, auction));
-      } else {
-        coinList.push(coinHelper.formatCoinData(txResult));
-      }
-    }
-
     this.setState({ coinList });
   }
 
-  handleItemClick = (e, { name }) => {
+  handleItemClick = async (e, { name }) => {
     this.setState({ activeItem: name });
     this.getCoinListByPage();
   }
@@ -126,7 +109,9 @@ class Index extends React.Component {
       showPreviousAndNextNav,
       totalPages,
       coinList,
-      } = this.state
+    } = this.state
+
+    console.log(coinList, "coinList on render");
 
     return (
       <Layout>
@@ -140,7 +125,7 @@ class Index extends React.Component {
           </Grid.Row>
 
           <Grid.Row>
-                <CoinList coinList={coinList}></CoinList>
+            <CoinList coinList={coinList}></CoinList>
           </Grid.Row>
 
           <Grid.Row>

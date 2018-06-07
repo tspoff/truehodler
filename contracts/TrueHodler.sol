@@ -408,14 +408,14 @@ contract CoinOwnership is CoinBase, ERC721 {
         whenNotPaused
     {
         // Safety check to prevent against an unexpected 0x0 default.
-        require(_to != address(0));
+        require(_to != address(0), "Safety check to prevent against an unexpected 0x0 default");
         // Disallow transfers to this contract to prevent accidental misuse.
         // The contract should never own any coins (except very briefly
         // after a gen0 coin is created and before it goes on auction).
-        require(_to != address(this));
+        require(_to != address(this), "Cannot transfer tokens to core contract");
         // Check for approval and valid ownership
-        require(_approvedFor(msg.sender, _tokenId));
-        require(_owns(_from, _tokenId));
+        require(_approvedFor(msg.sender, _tokenId), "Token is not approved for sender");
+        require(_owns(_from, _tokenId), "From address does not own token");
 
         // Reassign ownership (also clears pending approvals and emits Transfer event).
         _transfer(_from, _to, _tokenId);
@@ -593,7 +593,7 @@ contract CoinAuction is CoinBreeding {
         // Auction contract checks input sizes
         // If coin is already on any auction, this will throw
         // because it will be owned by the auction contract.
-        require(_owns(msg.sender, _coinId));
+        require(_owns(msg.sender, _coinId), "Sender does not own token");
         // Ensure the coin is not pregnant to prevent the auction
         // contract accidentally receiving ownership of the child.
         // NOTE: the coin IS allowed to be in a cooldown.
