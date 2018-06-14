@@ -272,20 +272,19 @@ contract CoinOwnership is CoinBase, ERC721 {
     // The contract that will return coin metadata
     ERC721Metadata public erc721Metadata;
 
-    bytes4 constant InterfaceSignature_ERC165 =
-        bytes4(keccak256('supportsInterface(bytes4)'));
+    bytes4 constant InterfaceSignature_ERC165 = bytes4(keccak256("supportsInterface(bytes4)"));
 
     bytes4 constant InterfaceSignature_ERC721 =
-        bytes4(keccak256('name()')) ^
-        bytes4(keccak256('symbol()')) ^
-        bytes4(keccak256('totalSupply()')) ^
-        bytes4(keccak256('balanceOf(address)')) ^
-        bytes4(keccak256('ownerOf(uint256)')) ^
-        bytes4(keccak256('approve(address,uint256)')) ^
-        bytes4(keccak256('transfer(address,uint256)')) ^
-        bytes4(keccak256('transferFrom(address,address,uint256)')) ^
-        bytes4(keccak256('tokensOfOwner(address)')) ^
-        bytes4(keccak256('tokenMetadata(uint256,string)'));
+    bytes4(keccak256("name()")) ^ 
+    bytes4(keccak256("symbol()")) ^
+    bytes4(keccak256("totalSupply()")) ^
+    bytes4(keccak256("balanceOf(address)")) ^
+    bytes4(keccak256("ownerOf(uint256)")) ^
+    bytes4(keccak256("approve(address,uint256)")) ^
+    bytes4(keccak256("transfer(address,uint256)")) ^
+    bytes4(keccak256("transferFrom(address,address,uint256)")) ^
+    bytes4(keccak256("tokensOfOwner(address)")) ^
+    bytes4(keccak256("tokenMetadata(uint256,string)"));
 
     /// @notice Introspection interface as per ERC-165 (https://github.com/ethereum/EIPs/issues/165).
     ///  Returns true for any standardized interfaces implemented by this contract. We implement
@@ -639,7 +638,7 @@ contract CoinMinting is CoinAuction {
     function createPromoCoin(uint256 _genes, uint32 _coinType, address _owner) external onlyCOO {
         address coinOwner = _owner;
         if (coinOwner == address(0)) {
-             coinOwner = cooAddress;
+            coinOwner = cooAddress;
         }
         require(promoCreatedCount < PROMO_CREATION_LIMIT);
 
@@ -751,6 +750,59 @@ contract CoinCore is CoinMinting {
             if (coinIndexToOwner[i] == _owner) {
                 result[counter] = i;
                 counter++;
+            }
+        }
+        return result;
+    }
+
+    /*
+    startIndex, ownerIndex, resultsIndex all refer to indicies the (virtual) array of this OWNER'S coins - not indexes in the global coin array.
+
+    ---Determine Array Size---
+    The size of the result array can be determined, so we set that before iteration.
+    It is the minimum of the number of coins requested, or the number of remaining owned coins after the startIndex (over that owner's coins).
+
+    ---Iterate over coins---
+    Keep going through coins until we find ones with the right owner.
+        Keep passing them over until we get to the startIndex
+        Add this coin to the results, incrementing resultsIndex
+            If we have all the results we need (array is filled), exit early.
+
+    */
+    function getCoinsByOwnerRange(address _owner, uint _startIndex, uint _numCoins) external view returns(uint[]) {
+        require(_startIndex < ownershipTokenCount[_owner]);
+        require(_numCoins >= 1);
+    
+        uint[] memory result;
+
+        //There are less coins remaining after startIndex than numCoins asks for
+        if (_startIndex + _numCoins > ownershipTokenCount[_owner]) {
+            result = new uint[](ownershipTokenCount[_owner] - _startIndex);
+        } 
+        
+        //There are enough coins remaining after startIndex to fill numCoins
+        else {
+            result = new uint[](_numCoins);
+        }
+
+        uint ownerIndex = 0;
+        uint resultIndex = 0;
+
+        for (uint i = 0; i < coins.length; i++) {
+            if (coinIndexToOwner[i] == _owner) {
+                if (ownerIndex >= _startIndex) {
+                    result[resultIndex] = i;
+                    ownerIndex++;
+                    resultIndex++;
+
+                    //array is filled with numCoins results, break early
+                    if (resultIndex == result.length) {
+                        break;
+                    }
+                } else {
+                    ownerIndex++;
+                }
+
             }
         }
         return result;
