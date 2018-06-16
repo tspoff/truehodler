@@ -12,6 +12,8 @@
   "dependencies": {
     "axios": "^0.18.0",
     "express": "^4.16.3",
+    "firebase": "^5.0.4",
+    "firebase-admin": "^5.12.1",
     "mongoose": "^5.1.2",
     "next": "^4.2.3",
     "react": "^16.1.0",
