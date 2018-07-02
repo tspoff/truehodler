@@ -5,13 +5,6 @@ import Layout from '../components/Layout';
 import CoinList from '../components/CoinList';
 
 import web3 from '../lib/web3';
-import getAccounts from '../lib/getAccounts';
-import getContract from '../lib/getContract';
-import contractDefinition from '../lib/contracts/CoinCore.json';
-import saleAuctionDefinition from '../lib/contracts/SaleClockAuction.json';
-import geneScienceDefinition from '../lib/contracts/GeneScienceTest.json';
-
-import CoinHelper from '../lib/CoinCoreInterface';
 
 const MARKET_TAB_STRING = 'For Sale';
 const MYCOINS_TAB_STRING = 'My Coins';

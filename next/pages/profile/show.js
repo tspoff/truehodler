@@ -5,10 +5,8 @@ import Layout from '../../components/Layout';
 import CoinList from '../../components/CoinList';
 
 import web3 from '../../lib/web3';
-import getAccounts from '../../lib/getAccounts';
 import getContract from '../../lib/getContract';
 import contractDefinition from '../../lib/contracts/CoinCore.json';
-import geneScienceDefinition from '../../lib/contracts/GeneScienceTest.json';
 import saleAuctionDefinition from '../../lib/contracts/SaleClockAuction.json';
 
 import CoinHelper from '../../lib/CoinCoreInterface';
@@ -44,30 +42,9 @@ class ShowProfile extends React.Component {
     }
 
     async getCoinsByAddress(address) {
-        const { accounts, coreInstance, coinHelper, saleAuctionInstance } = this.state;
-
-        let coinIndicies = [];
-        let coinList = [];
-
-        coinIndicies = await coreInstance.getCoinsByOwner(address, { from: accounts[0] });
-
-        for (let i = 0; i < coinIndicies.length; i++) {
-            let txResult = await coreInstance.getCoin(coinIndicies[i], { from: accounts[0] });
-            let ownerId = await coreInstance.ownerOf(coinIndicies[i], { from: accounts[0] });
-            const isOnAuction = await saleAuctionInstance.isOnAuction(coinIndicies[i], { from: accounts[0] });
-
-            txResult.push(ownerId);
-            txResult.push(coinIndicies[i]);
-
-            if (isOnAuction) {
-                const auction = await saleAuctionInstance.getAuction(coinId, { from: accounts[0] });
-                coinList.push(coinHelper.formatCoinDataWithAuction(txResult, auction));
-            } else {
-                coinList.push(coinHelper.formatCoinData(txResult));
-            }
-        }
-
-        this.setState({ coinList });
+        const { address } = this.props;
+        let response = await axios(`http://localhost:3000/api/profile/${address}/coins`);
+        this.setState({ coinList: response.data });
     }
 
     render() {

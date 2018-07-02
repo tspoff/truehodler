@@ -18,7 +18,7 @@ class ShowCoin extends React.Component {
         coinType: '',
         errorMessage: '',
         loading: false,
-        coinData: undefined,
+        coinInfo: undefined,
         coinId: undefined,
         accounts: undefined,
         coreInstance: undefined,
@@ -63,23 +63,11 @@ class ShowCoin extends React.Component {
         const { coinId } = this.props;
         const { accounts, coreInstance, saleAuctionInstance, coinHelper } = this.state;
 
-        let coinData = await coreInstance.getCoin(coinId, { from: accounts[0] });
-        const coinOwner = await coreInstance.ownerOf(coinId, { from: accounts[0] });
-        const isOnAuction = await saleAuctionInstance.isOnAuction(coinId, { from: accounts[0] });
+        let response = await axios(`http://localhost:3000/api/coid/${coinId}`);
+        const coinInfo = response.data;
 
-        coinData.push(coinOwner);
-        coinData.push(coinId);
-
-        if (isOnAuction) {
-            const auction = await saleAuctionInstance.getAuction(coinId, { from: accounts[0] });
-            console.log("auction", auction);
-            coinData = coinHelper.formatCoinDataWithAuction(coinData, auction);
-        } else {
-            coinData = coinHelper.formatCoinData(coinData);
-        }
-
-        console.log(coinData);
-        this.setState({ coinData });
+        console.log(coinInfo);
+        this.setState({ coinInfo });
     }
 
     saleFormSubmit = async (event) => {
@@ -154,43 +142,41 @@ class ShowCoin extends React.Component {
     };
 
     renderCoinImage() {
-        const { coinData } = this.state;
+        const { coinInfo } = this.state;
 
         //TODO: Loading spanner
-        if (coinData == undefined) {
+        if (coinInfo == undefined) {
             return (<div>Waiting for coins</div>);
         }
 
-        const src = coinTypeToImage(coinData.coinType);
+        const src = coinTypeToImage(coinInfo.coinType);
 
         return (
             <Container fluid>
-                <Image src={src} size='medium' centered />
+                <Image src={coinInfo.imgUrl} size='medium' centered />
             </Container>
         )
     }
 
     renderCoinInfo() {
-        const { coinData, accounts } = this.state;
-
-        // const src = coinTypeToImage(coinData.coinType);
+        const { coinInfo, accounts } = this.state;
 
         //TODO: Loading spanner
-        if (coinData == undefined) {
+        if (coinInfo == undefined) {
             return (<div>Waiting for coins</div>);
         }
 
         return (
             <Container>
-                <h2>{coinData.mintingTime}</h2>
-                <h4>Coin {coinData.coinId}</h4>
-               <Link href={`/profile?address=${coinData.owner}`} as={`/profile/${coinData.owner}`} prefetch>{coinData.owner}</Link>
-                {coinData.auction ? null : (
+                <h2>{coinInfo.mintingTime}</h2>
+                <h4>Coin {coinInfo.coinId}</h4>
+               <Link href={`/profile?address=${coinInfo.owner}`} as={`/profile/${coinInfo.owner}`} prefetch>{coinInfo.owner}</Link>
+                {coinInfo.auction ? null : (
                     <Container>
                         <Button color="green" onClick={this.onBuy}>Buy Now</Button>
                     </Container>
                 )}
-                {coinData.owner === accounts[0] ? null : (
+                {coinInfo.owner === accounts[0] ? null : (
                     <Container>
                         <Button onClick={this.onBreed}>Breed</Button>
                         <Button onClick={this.onGift}>Gift</Button>
