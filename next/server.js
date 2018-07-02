@@ -5,12 +5,11 @@ const dev = process.env.NODE_ENV !== 'production';
 const app = next({ dev });
 const handle = app.getRequestHandler();
 var Web3 = require('web3');
-const truffle_connect = require('../connection/coinCore.js');
 
-const getAccount = async (web3) => {
-  const accounts = await web3.eth.getAccounts();
-  return accounts[0];
-};
+const imageResolver = require('./server/imageResolver');
+const coinCoreConnect = require('../connection/coinCore');
+const eventWatcher = require('../connection/eventWatcher');
+
 
 app.prepare().then(() => {
   const server = express();
@@ -30,7 +29,7 @@ app.prepare().then(() => {
   server.get('/api/accounts', (req, res) => {
     const mergedQuery = Object.assign({}, req.query, req.params);
     console.log("**** GET /getAccounts ****");
-    truffle_connect.getAccounts(answer => {
+    coinCoreConnect.getAccounts(answer => {
       res.send(answer);
       console.log(answer);
     })
@@ -42,7 +41,8 @@ app.prepare().then(() => {
     const account = "0x1b304b2fBc2838A1663357E63E3d70Dc66338d6a";
     const coinIndex = req.params.coinId;
 
-    truffle_connect.getCoin(coinIndex, account, answer => {
+    coinCoreConnect.getCoin(coinIndex, account, answer => {
+      answer.imgUrl = imageResolver.getHodlerImageUrlById(answer.coinId);
       res.send(answer);
       console.log(answer);
     })
@@ -54,7 +54,12 @@ app.prepare().then(() => {
     const account = "0x1b304b2fBc2838A1663357E63E3d70Dc66338d6a";
     const address = req.params.address;
 
-    truffle_connect.getCoinsByOwner(address, account, answer => {
+    coinCoreConnect.getCoinsByOwner(address, account, answer => {
+
+      for (let coin of answer) {
+        coin.imgUrl = imageResolver.getHodlerImageUrlById(coin.coinId);
+      }
+
       res.send(answer);
       console.log(answer);
     })
@@ -66,9 +71,8 @@ app.prepare().then(() => {
 
     const account = "0x1b304b2fBc2838A1663357E63E3d70Dc66338d6a";
 
-    truffle_connect.getContractAddresses(account, answer => {
+    coinCoreConnect.getContractAddresses(account, answer => {
       res.send(answer);
-      console.log(answer);
     })
 
   });
@@ -78,7 +82,7 @@ app.prepare().then(() => {
 
     const account = "0x1b304b2fBc2838A1663357E63E3d70Dc66338d6a";
 
-    truffle_connect.getContractInstances(account, answer => {
+    coinCoreConnect.getContractInstances(account, answer => {
       res.send(answer);
       console.log(answer);
     })
@@ -97,14 +101,18 @@ app.prepare().then(() => {
     if (typeof web3 !== 'undefined') {
       console.warn("Using web3 detected from external source. If you find that your accounts don't appear or you have 0 MetaCoin, ensure you've configured that source properly. If using MetaMask, see the following link. Feel free to delete this warning. :) http://truffleframework.com/tutorials/truffle-and-metamask")
       // Use Mist/MetaMask's provider
-      truffle_connect.web3 = new Web3(web3.currentProvider);
+      coinCoreConnect.web3 = new Web3(web3.currentProvider);
+      eventWatcher.web3 = new Web3(web3.currentProvider);
     } else {
       console.warn("No web3 detected. Falling back to http://127.0.0.1:7545. You should remove this fallback when you deploy live, as it's inherently insecure. Consider switching to Metamask for development. More info here: http://truffleframework.com/tutorials/truffle-and-metamask");
       // fallback - use your fallback strategy (local node / hosted node + in-dapp id mgmt / fail)
-      truffle_connect.web3 = new Web3(new Web3.providers.HttpProvider("http://localhost:7545"));
+      coinCoreConnect.web3 = new Web3(new Web3.providers.HttpProvider("http://localhost:7545"));
+      eventWatcher.web3 = new Web3(new Web3.providers.HttpProvider("http://localhost:7545"));
+      eventWatcher.init();
+      eventWatcher.watchNewCoin(res => {
+        console.log(res);
+      });
     }
-    console.log("Express Listening at http://localhost:" + port);
-
     console.log(`> Ready on port ${port}...`);
   });
 });

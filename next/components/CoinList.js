@@ -2,9 +2,6 @@ import React, { Component } from 'react';
 import { Menu, Card, Image } from 'semantic-ui-react';
 import Link from 'next/link';
 
-import coinTypeToImage from '../lib/mappings/coinTypeToImage';
-import coinGenesToEyes from '../lib/mappings/coinGenesToEyes';
-
 /* Takes in a list of coinData to render */
 class CoinList extends React.Component {
     state = {
@@ -52,11 +49,11 @@ class CoinList extends React.Component {
 
         items = coinListSlice.map(coin => {
 
-            const src = coinTypeToImage(coin.coinType);
-            //console.log(coin.coinType, "coinType");
+            // const src = coinTypeToImage(coin.coinType)
+            
             return (
                 <Card>
-                    <Image src={src} size='medium' centered />
+                    <Image src={coin.imgUrl} size='medium' centered />
 
                     <Card.Content>
                         <Card.Header>
